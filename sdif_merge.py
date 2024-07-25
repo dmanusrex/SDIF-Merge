@@ -36,7 +36,7 @@ def main():
     #    ctk.set_widget_scaling(new_scaling_float)
     #    ctk.set_window_scaling(new_scaling_float)
     root.title("Swimming Canada - SDIF Merge")
-    icon_file = os.path.abspath(os.path.join(bundle_dir, "media", "SplashUtilities.ico"))
+    icon_file = os.path.abspath(os.path.join(bundle_dir, "media", "sdifmerge.ico"))
     root.iconbitmap(icon_file)
     #    root.geometry(f"{850}x{1050}")
     #    root.minsize(800, 900)

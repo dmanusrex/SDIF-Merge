@@ -1,6 +1,6 @@
 # type: ignore
 
-"""Python script to build Swimming Canada Splash Utilities executable"""
+"""Python script to build Swimming Canada SDIF Merge executable"""
 
 import os
 import shutil
