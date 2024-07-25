@@ -2,11 +2,11 @@
 # Application Specific
 .vscode/
 *.exe
-splashutilities.ini
-splashutilities.zip
+sdif_merge.ini
+sdif_merge.zip
 build/
-splashutilities.fileinfo
-splashutilities.log
+sdif_merge.fileinfo
+sdif_merge.log
 version.py
 CTkMessagebox/*.py
 TestData/
