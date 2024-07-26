@@ -2,121 +2,17 @@
 
 from config import appConfig
 from threading import Thread
-import requests
-import pyodbc  # type: ignore
+from version import CLUB_CSV_URL
+
+# import requests
 import csv
 import logging
 import os
 import zipfile
 import io
 import re
-
-
-class Update_Clubs(Thread):
-    def __init__(self, config: appConfig):
-        super().__init__()
-        self._config: appConfig = config
-
-    def run(self):
-        logging.info("Updating Region (Province) Code on all Clubs...")
-
-        _splash_db_file = self._config.get_str("splash_db")
-        _splash_db_driver = "{Microsoft Access Driver (*.mdb, *.accdb)}"
-        _csv_file = self._config.get_str("csv_file")
-        _update_db = self._config.get_bool("update_database")
-        _update_db = False
-        try:
-            logging.info("Reading CSV File...")
-            data = self.csv_to_dict(_csv_file)
-            logging.info("  CSV File Read - Total Clubs = %s", len(data))
-        except FileNotFoundError:
-            logging.error("CSV File not found")
-            return
-
-        logging.info("Reading Splash Database...")
-
-        connection_string = "DRIVER={};DBQ={};".format(_splash_db_driver, _splash_db_file)
-        try:
-            con = pyodbc.connect(connection_string)
-        except pyodbc.Error as ex:
-            logging.error("Error connecting to database")
-            logging.error(ex)
-            return
-
-        SQL = "SELECT CLUBID, CODE, NAME, NATION, REGION " "FROM CLUB "
-
-        # iterate over the returned rows and set the region code to the province field from the CSV file
-
-        cursor = con.cursor()
-        try:
-            cursor.execute(SQL)
-            rows = cursor.fetchall()
-        except:
-            logging.error("Error reading database")
-            return
-
-        logging.info("  Splash Database Read - Total Clubs = %s", len(rows))
-
-        _count_clubs = 0
-        _count_club_names = 0
-
-        for row in rows:
-            club_id = row[0]
-            club_code = row[1]
-            club_name = row[2]
-            club_nation = row[3]
-            club_region = row[4]
-
-            # if the club is not Canadian, skip it
-            if club_nation != "CAN":
-                continue
-
-            mylist = list(filter(lambda person: person["Club Code"] == club_code, data))
-
-            if len(mylist) != 1:
-                logging.error("Club Code %s not found in CSV file", club_code)
-                continue
-
-            province = mylist[0]["Province"]
-            clubname = mylist[0]["Club Name"]
-            preferred_club_name = mylist[0]["Preferred Club Name"]
-
-            # update the region code in the database only if it is different from the province field in the CSV file
-
-            if club_region != province:
-                SQL = "UPDATE CLUB SET REGION = ? WHERE CLUBID = ? "
-                _count_clubs += 1
-                if _update_db:
-                    cursor.execute(SQL, (province, club_id))
-                    con.commit()
-
-                logging.info("Club Code %s updated to Province %s", club_code, province)
-
-            # Set the preferred club long name if one is set.
-            if preferred_club_name is not None:
-                if (preferred_club_name != club_name) and (len(preferred_club_name) > 1):
-                    SQL = "UPDATE CLUB SET NAME = ? WHERE CLUBID = ? "
-                    _count_club_names += 1
-                    if _update_db:
-                        cursor.execute(SQL, (preferred_club_name, club_id))
-                        con.commit()
-                    logging.info(
-                        "Club Code %s not preferred name. <%s> updated to <%s>",
-                        club_code,
-                        club_name,
-                        preferred_club_name,
-                    )
-
-        con.close()
-        logging.info("Update Complete - %s Clubs updated, %s Club Names updated", _count_clubs, _count_club_names)
-
-    def csv_to_dict(self, file_path):
-        data_dict = []
-        with open(file_path, "r") as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                data_dict.append(row)
-        return data_dict
+import requests
+import datetime
 
 
 class SDIF_Merge(Thread):
@@ -148,8 +44,10 @@ class SDIF_Merge(Thread):
 
         mylist = list(filter(lambda person: person["Club Code"] == team_code, clubdata))
 
+        # The club list should only have one entry per club. If there is more than one, we have a problem and we skip it
+
         if len(mylist) == 1:
-            if self._set_country and (cur_country != 'CAN' or cur_country == None):
+            if self._set_country and (cur_country != "CAN" or cur_country == None):
                 logging.info("Country code updated for club %s %s", team_code, cur_name)
                 line = line[:139] + "CAN" + line[142:]
             if self._set_region and (prov_code != mylist[0]["Province"]):
@@ -168,15 +66,17 @@ class SDIF_Merge(Thread):
             return
 
         if self._set_country or self._set_region:
-            try:
-                clubdata = self.csv_to_dict(self._csv_file)
-            except FileNotFoundError:
+            clubdata = self.load_remote_csv_file(CLUB_CSV_URL)
+            # Be sure we have somehting
+            if len(clubdata) == 0:
                 logging.error("Club CSV File not found - unable to set country and region codes")
                 return
 
-        merged_a0_record = "A01V3      01                              SPLASH Team Manager #79765    Splash Software     unknown     07012024                                               "
-        #        merged_a0_record = "A01V3      01                              SPLASH Team Manager #79765    Splash Software     unknown     07012024                                               "
-        #        merged_a0_record = "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+
+        merged_a0_record = "A01V3      01                              SDIF MERGE UTILITY            SDIF MERGE          unknown     07012024                                               "
+        current_date = datetime.datetime.now().strftime("%m%d%Y")
+        merged_a0_record = merged_a0_record[:80] + current_date + merged_a0_record[88:]
+
         try:
             report_file = open(self._output_report_file, "w")
         except FileNotFoundError:
@@ -260,6 +160,27 @@ class SDIF_Merge(Thread):
             for row in reader:
                 data_dict.append(row)
         return data_dict
+
+    def load_remote_csv_file(self, url) -> list:
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            logging.error("Error downloading CSV file")
+            logging.error(e)
+            return []
+        
+        csv_data = io.StringIO(response.text)
+        reader = csv.DictReader(csv_data)
+
+        data = [row for row in reader]
+        return data
     
+    
+        
+
+
 if __name__ == "__main__":
-    print("Hello World")
+    x = SDIF_Merge(appConfig())
+    clublist = x.load_remote_csv_file(CLUB_CSV_URL)
+    print(clublist)

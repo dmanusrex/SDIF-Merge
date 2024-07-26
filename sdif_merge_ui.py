@@ -54,7 +54,6 @@ class _Splash_Fixes_Tab(ctk.CTkFrame):  # pylint: disable=too-many-ancestors
         self._entry_file_directory = StringVar(value=self._config.get_str("entry_file_directory"))
         self._output_sd3_file = StringVar(value=self._config.get_str("output_sd3_file"))
         self._output_report_file = StringVar(value=self._config.get_str("output_report_file"))
-        self._csv_file = StringVar(value=self._config.get_str("csv_file"))
         self._set_country = BooleanVar(value=self._config.get_bool("set_country"))
         self._set_region = BooleanVar(value=self._config.get_bool("set_region"))
 
@@ -95,10 +94,6 @@ class _Splash_Fixes_Tab(ctk.CTkFrame):  # pylint: disable=too-many-ancestors
         btn3 = ctk.CTkButton(filesframe, text="Output Report File", command=self._handle_output_report_file_browse)
         btn3.grid(column=0, row=3, padx=20, pady=10)
         ctk.CTkLabel(filesframe, textvariable=self._output_report_file).grid(column=1, row=3, sticky="w", padx=(0, 10))
-
-        btn4 = ctk.CTkButton(filesframe, text="Club CSV File", command=self._handle_csv_file_browse)
-        btn4.grid(column=0, row=4, padx=20, pady=10)
-        ctk.CTkLabel(filesframe, textvariable=self._csv_file).grid(column=1, row=4, sticky="w", padx=(0, 10))
 
         # Right options frame for status options
 
@@ -153,18 +148,6 @@ class _Splash_Fixes_Tab(ctk.CTkFrame):  # pylint: disable=too-many-ancestors
             return
         self._config.set_str("output_report_file", output_report_file)
         self._output_report_file.set(output_report_file)
-    
-    def _handle_csv_file_browse(self) -> None:
-        csv_file = filedialog.askopenfilename(
-            filetypes=[("CSV File", "*.csv")],
-            defaultextension=".csv",
-            title="CSV File",
-            initialfile=self._csv_file.get(),
-        )
-        if len(csv_file) == 0:
-            return
-        self._config.set_str("csv_file", csv_file)
-        self._csv_file.set(csv_file)
 
     def _handle_merge_btn(self) -> None:
         self.merge_btn.configure(state="disabled")
@@ -172,7 +155,7 @@ class _Splash_Fixes_Tab(ctk.CTkFrame):  # pylint: disable=too-many-ancestors
         merge_thread = SDIF_Merge(self._config)
         merge_thread.start()
         self.monitor_merge_thread(merge_thread)
-    
+
     def monitor_merge_thread(self, thread):
         if thread.is_alive():
             # check the thread every 100ms
@@ -180,7 +163,7 @@ class _Splash_Fixes_Tab(ctk.CTkFrame):  # pylint: disable=too-many-ancestors
         else:
             self.merge_btn.configure(state="enabled")
             thread.join()
-    
+
     def _handle_update_country(self) -> None:
         self._config.set_bool("set_country", self._set_country.get())
 
@@ -190,7 +173,6 @@ class _Splash_Fixes_Tab(ctk.CTkFrame):  # pylint: disable=too-many-ancestors
     def buttons(self, newstate) -> None:
         """Enable/disable all buttons"""
         self.merge_btn.configure(state=newstate)
-
 
 
 class _Configuration_Tab(ctk.CTkFrame):  # pylint: disable=too-many-ancestors

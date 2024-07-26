@@ -5,7 +5,7 @@
 sdif_merge.ini
 sdif_merge.zip
 build/
-sdif_merge.fileinfo
+*.fileinfo
 sdif_merge.log
 version.py
 CTkMessagebox/*.py

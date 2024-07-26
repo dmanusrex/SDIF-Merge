@@ -20,7 +20,6 @@ class appConfig:
             "entry_file_directory": "",  # Entry File Directory
             "output_sd3_file": "output.sd3",  # Output SD3 File
             "output_report_file": "report.txt",  # Output Report File
-            "csv_file": "ClubList.csv",  # Location of CSV File
             "set_country": True,  # Set Country Code
             "set_region": True,  # Set Region Code
             "Theme": "System",  # Theme- System, Dark or Light

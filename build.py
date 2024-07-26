@@ -40,11 +40,18 @@ with open("version.py", "w") as f:
     f.write(f'APP_VERSION = "{APP_VERSION}"\n')
 
     # Sentry DSN
-    dsn = os.getenv("SENTRY_DSN")
+    dsn = os.getenv("SENTRY_DSN_SDIF_MERGE")
     if dsn is not None:
         f.write(f'SENTRY_DSN = "{dsn}"\n')
     else:
         f.write("SENTRY_DSN = None\n")
+
+    # Sentry DSN
+    csvurl = os.getenv("CLUB_CSV_URL")
+    if csvurl is not None:
+        f.write(f'CLUB_CSV_URL = "{csvurl}"\n')
+    else:
+        f.write("CLUB_CSV_URL: str | None = None\n")
 
     f.flush()
     f.close()
@@ -107,6 +114,10 @@ with open("version.py", "w") as f:
     f.write('"""Version information"""\n\n')
     f.write(f'APP_VERSION: str = "unreleased"\n')
     f.write("SENTRY_DSN: str | None = None\n")
-
+    csvurl = os.getenv("CLUB_CSV_URL")
+    if csvurl is not None:
+        f.write(f'CLUB_CSV_URL = "{csvurl}"\n')
+    else:
+        f.write("CLUB_CSV_URL: str | None = None\n")
     f.flush()
     f.close()
